@@ -1,6 +1,7 @@
 Client = require("request-json").JsonClient
 path = require 'path'
 fs = require 'fs'
+urlHelper = require 'cozy-url-sdk'
 
 switch  process.argv[2]
     when 'test-install'
@@ -27,7 +28,7 @@ switch  process.argv[2]
         for doctype, perm of packageData['cozy-permissions']
             data.permissions[doctype.toLowerCase()] = perm
 
-        client = new Client "http://localhost:9101/"
+        client = new Client urlHelper.dataSystem.url()
         client.setBasicAuth 'home', 'token'
         client.post "access/", data, (err, res, body) ->
             if err

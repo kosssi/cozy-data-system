@@ -2,6 +2,7 @@ http = require 'http'
 fs = require 'fs'
 querystring = require 'querystring'
 S = require 'string'
+urlHelper = require 'cozy-url-sdk'
 errors = require '../middlewares/errors'
 
 # Get Couch credentials from config file.
@@ -34,7 +35,7 @@ module.exports =
     download: (id, attachment, rawcallback) ->
 
         # Build couch path to fetch attachements.
-        dbName = process.env.DB_NAME or 'cozy'
+        dbName = urlHelper.couch.name()
         attachment = querystring.escape attachment
         path = "/#{dbName}/#{id}/#{attachment}"
         aborted = false
@@ -49,8 +50,8 @@ module.exports =
 
             # Build options.
             options =
-                host: process.env.COUCH_HOST or 'localhost'
-                port: process.env.COUCH_PORT or 5984
+                host: urlHelper.couch.host()
+                port: urlHelper.couch.port()
                 path: path
 
             # Add couch credentials only in production environment.

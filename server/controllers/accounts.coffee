@@ -4,6 +4,7 @@ encryption = require '../lib/encryption'
 async = require 'async'
 Client = require("request-json").JsonClient
 User = require '../lib/user'
+urlHelper = require 'cozy-url-sdk'
 
 checkProxyHome = require('../lib/token').checkProxyHome
 errors = require '../middlewares/errors'
@@ -14,7 +15,7 @@ apps = []
 
 # Restart Application <app>
 restartApp = (app, cb) ->
-    homeClient = new Client 'http://localhost:9103'
+    homeClient = new Client urlHelper.home.url()
     # Stop application via cozy-home
     homeClient.post "api/applications/#{app}/stop", {}, (err, res) ->
         console.log err if err?

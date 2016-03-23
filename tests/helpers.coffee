@@ -4,6 +4,7 @@ logger = require('printit')
     date: false
     prefix: 'tests:helper'
 helpers = {}
+urlHelper = require 'cozy-url-sdk'
 
 # Mandatory
 process.env.TOKEN = "token"

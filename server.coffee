@@ -3,6 +3,7 @@ application = module.exports = (callback) ->
     americano = require 'americano'
     initialize = require './server/initialize'
     errorMiddleware = require './server/middlewares/errors'
+    urlHelper = require 'cozy-url-sdk'
 
     # Initialize database
     # * Create cozy database if not exists
@@ -13,8 +14,8 @@ application = module.exports = (callback) ->
     db ->
         options =
             name: 'data-system'
-            port: process.env.PORT or 9101
-            host: process.env.HOST or "127.0.0.1"
+            port: process.env.PORT or urlHelper.dataSystem.port()
+            host: process.env.HOST or urlHelper.dataSystem.host()
             root: __dirname
 
         # Start data-system server
