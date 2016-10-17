@@ -56,6 +56,21 @@ module.exports.checkPermissionsByType = (req, res, next) ->
 
 # Check the permission for a post request in replication protocol
 module.exports.checkPermissionsPostReplication = (req, res, next) ->
+    checkPermissionsByDocId = (req, docId, callback) ->
+        db.get docId, (err, doc) ->
+            if err? and err.error is 'not_found'
+                cb()
+            else if err
+                logger.error err
+                cb err
+            # The document is not well formed
+            else if not doc._id?
+                err = new Error "Forbidden operation"
+                err.status = 403
+                cb err
+            else
+                checkReplicationPermissions req, doc, callback
+
     if req.url.indexOf('/replication/_revs_diff') is 0
         # Use to retrieve difference in documents revisions
         next()
@@ -71,19 +86,7 @@ module.exports.checkPermissionsPostReplication = (req, res, next) ->
             if doc._deleted
                 # Document deletion:
                 #   Get doc and check docType of current document
-                db.get doc._id, (err, doc) ->
-                    if err? and err.error is 'not_found'
-                        cb()
-                    else if err
-                        logger.error err
-                        cb err
-                    # The document is not well formed
-                    else if not doc._id?
-                        err = new Error "Forbidden operation"
-                        err.status = 403
-                        cb err
-                    else
-                        checkReplicationPermissions req, doc, cb
+                checkPermissionsByDocId req, doc._id, cb
             # Manage in request
             else
                 # The document is not well formed
@@ -96,14 +99,11 @@ module.exports.checkPermissionsPostReplication = (req, res, next) ->
         , next
     else if req.url.indexOf('/replication/_all_docs') is 0 and req.body.keys
         async.forEach req.body.keys, (key, cb) ->
-            db.get key, (err, doc) ->
-                if err? and err.error is 'not_found'
-                    cb()
-                else if err
-                    logger.error err
-                    cb err
-                else
-                    checkReplicationPermissions req, doc, cb
+            checkPermissionsByDocId req, key, cb
+        , next
+    else if req.url.indexOf('/replication/_bulk_get') is 0 and req.body.docs
+        async.forEach req.body.docs, (key, cb) ->
+            checkPermissionsByDocId req, key, cb
         , next
     else
         err = new Error "Forbidden operation"
