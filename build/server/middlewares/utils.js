@@ -68,7 +68,23 @@ module.exports.checkPermissionsByType = function(req, res, next) {
 };
 
 module.exports.checkPermissionsPostReplication = function(req, res, next) {
-  var err;
+  var checkPermissionsByDocId, err;
+  checkPermissionsByDocId = function(req, docId, callback) {
+    return db.get(docId, function(err, doc) {
+      if ((err != null) && err.error === 'not_found') {
+        return cb();
+      } else if (err) {
+        logger.error(err);
+        return cb(err);
+      } else if (doc._id == null) {
+        err = new Error("Forbidden operation");
+        err.status = 403;
+        return cb(err);
+      } else {
+        return checkReplicationPermissions(req, doc, callback);
+      }
+    });
+  };
   if (req.url.indexOf('/replication/_revs_diff') === 0) {
     return next();
   } else if (req.url === '/replication/_ensure_full_commit') {
@@ -79,20 +95,7 @@ module.exports.checkPermissionsPostReplication = function(req, res, next) {
     return async.forEach(req.body.docs, function(doc, cb) {
       var err;
       if (doc._deleted) {
-        return db.get(doc._id, function(err, doc) {
-          if ((err != null) && err.error === 'not_found') {
-            return cb();
-          } else if (err) {
-            logger.error(err);
-            return cb(err);
-          } else if (doc._id == null) {
-            err = new Error("Forbidden operation");
-            err.status = 403;
-            return cb(err);
-          } else {
-            return checkReplicationPermissions(req, doc, cb);
-          }
-        });
+        return checkPermissionsByDocId(req, doc._id, cb);
       } else {
         if (doc._id == null) {
           err = new Error("Forbidden operation");
@@ -102,6 +105,14 @@ module.exports.checkPermissionsPostReplication = function(req, res, next) {
           return checkReplicationPermissions(req, doc, cb);
         }
       }
+    }, next);
+  } else if (req.url.indexOf('/replication/_all_docs') === 0 && req.body.keys) {
+    return async.forEach(req.body.keys, function(key, cb) {
+      return checkPermissionsByDocId(req, key, cb);
+    }, next);
+  } else if (req.url.indexOf('/replication/_bulk_get') === 0 && req.body.docs) {
+    return async.forEach(req.body.docs, function(key, cb) {
+      return checkPermissionsByDocId(req, key, cb);
     }, next);
   } else {
     err = new Error("Forbidden operation");
